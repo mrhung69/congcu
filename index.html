@@ -3,310 +3,607 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Công cụ So sánh và Lọc Excel (2 File)</title>
+    <title>Lọc dữ liệu Shopee</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS/xlsx library for reading/writing Excel files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .file-input-label:hover { background-color: #eef2ff; border-color: #4f46e5; }
-        .hidden { display: none; }
-        .step-header {
-            border-bottom: 2px solid #4f46e5;
-            padding-bottom: 0.5rem;
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .step-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             margin-bottom: 1.5rem;
-            color: #3730a3;
         }
-        .action-link {
-            @apply text-sm text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer;
+        label {
+            font-weight: 500;
+            color: #374151;
         }
+        select, input[type="text"], input[type="file"] {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        #status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+        .status-info { background-color: #eff6ff; color: #1e40af; }
+        .status-success { background-color: #f0fdf4; color: #166534; }
+        .status-error { background-color: #fef2f2; color: #991b1b; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-100 p-4 md:p-8">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Công cụ So sánh và Lọc Excel</h1>
-            <p class="mt-2 text-gray-600">Hỗ trợ quy trình làm việc với 2 file, có bộ lọc và tùy chọn cột.</p>
-        </header>
+    <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Công cụ Lọc Dữ Liệu Shopee</h1>
+            <p class="text-gray-600 mt-2">Tải file, thiết lập điều kiện lọc và so sánh, sau đó xuất kết quả.</p>
+        </div>
 
-        <!-- Step 1: Upload Files -->
-        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8">
-            <h2 class="text-2xl font-bold step-header">Bước 1: Tải các File lên</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- File 1 -->
+        <!-- Step 1: File 1 -->
+        <div class="step-card">
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Bước 1: Tải File Nguồn (File 1)</h2>
+            <div class="space-y-4">
                 <div>
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-2">File 1: File Nguồn (Lọc)</h3>
-                    <label for="file1" class="border-2 border-dashed border-gray-300 rounded-lg p-4 block cursor-pointer file-input-label"><span id="file1-name">Chọn File 1</span></label>
-                    <input type="file" id="file1" class="hidden" accept=".xlsx, .xls, .csv">
-                    <select id="sheet1" class="w-full p-2 border border-gray-300 rounded-md mt-2 hidden"></select>
+                    <label for="file1" class="block mb-1">File Excel 1 (Chứa dữ liệu cần lọc):</label>
+                    <input type="file" id="file1" class="w-full p-2 border rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                 </div>
-                <!-- File 2 -->
-                <div>
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-2">File 2: Dữ liệu chính</h3>
-                    <label for="file2" class="border-2 border-dashed border-gray-300 rounded-lg p-4 block cursor-pointer file-input-label"><span id="file2-name">Chọn File 2</span></label>
-                    <input type="file" id="file2" class="hidden" accept=".xlsx, .xls, .csv">
-                    <select id="sheet2" class="w-full p-2 border border-gray-300 rounded-md mt-2 hidden"></select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="sheet1" class="block mb-1">Chọn Sheet:</label>
+                        <select id="sheet1" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                    <div>
+                        <label for="key-column1" class="block mb-1">Cột Đối Chiếu (ví dụ: Mã đơn hàng):</label>
+                        <select id="key-column1" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="filter-column" class="block mb-1">Cột cần lọc giá trị:</label>
+                        <select id="filter-column" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                    <div>
+                        <label for="filter-value" class="block mb-1">Chọn giá trị để giữ lại:</label>
+                        <select id="filter-value" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Step 2: Configuration -->
-        <div id="config-section" class="bg-white p-6 rounded-xl shadow-md border border-gray-200 hidden">
-            <h2 class="text-2xl font-bold step-header">Bước 2: Cấu hình Lọc và So sánh</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-                <!-- Config File 1 -->
-                <div id="config-file1">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-4">Cấu hình File 1</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="key1" class="font-medium">Cột so sánh chính:</label>
-                            <select id="key1" class="w-full p-2 border border-gray-300 rounded-md mt-1"></select>
-                        </div>
-                        <div class="pt-4 border-t">
-                             <input type="checkbox" id="enable-filter1" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                             <label for="enable-filter1" class="ml-2 font-medium">Lọc File 1 trước khi so sánh</label>
-                             <div id="filter1-controls" class="space-y-2 mt-2 hidden pl-6">
-                                <select id="filter1-column" class="w-full p-2 border border-gray-300 rounded-md" title="Cột cần lọc"></select>
-                                <select id="filter1-value" class="w-full p-2 border border-gray-300 rounded-md" title="Giá trị cần lọc"></select>
-                             </div>
-                        </div>
-                    </div>
+        <!-- Step 2: File 2 -->
+        <div class="step-card">
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Bước 2: Tải File Đối Chiếu (File 2)</h2>
+            <div class="space-y-4">
+                 <div>
+                    <label for="file2" class="block mb-1">File Excel 2 (Chứa dữ liệu để so sánh):</label>
+                    <input type="file" id="file2" class="w-full p-2 border rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                 </div>
-                <!-- Config File 2 -->
-                <div id="config-file2">
-                    <h3 class="text-lg font-semibold text-indigo-700 mb-4">Cấu hình File 2</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="key2" class="font-medium">Cột để so sánh với File 1:</label>
-                            <select id="key2" class="w-full p-2 border border-gray-300 rounded-md mt-1"></select>
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center">
-                                <label class="font-medium">Các cột cần lấy từ File 2:</label>
-                                <div class="space-x-2">
-                                    <span id="select-all-2" class="action-link">Chọn tất cả</span>
-                                    <span id="deselect-all-2" class="action-link">Bỏ chọn</span>
-                                </div>
-                            </div>
-                            <div id="output-columns-list2" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-lg mt-1"></div>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="sheet2" class="block mb-1">Chọn Sheet:</label>
+                        <select id="sheet2" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                    <div>
+                        <label for="key-column2" class="block mb-1">Cột Đối Chiếu:</label>
+                        <select id="key-column2" class="w-full p-2 border rounded-md bg-white"></select>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Step 3: Action -->
-        <div class="mt-8 text-center">
-            <button id="process-btn" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300" disabled>
-                Xử lý và Tải kết quả
-            </button>
-            <div id="status" class="mt-4 text-gray-600 min-h-[24px]"></div>
+        <!-- Step 3: File 3 (Price & Profit) -->
+        <div class="step-card">
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Bước 3: Tải File Đơn Giá & Tính Lợi Nhuận (File 3)</h2>
+            <p class="text-sm text-gray-500 mb-4">Bước này không bắt buộc. Nếu bạn tải File 3, công cụ sẽ tính lợi nhuận.</p>
+            <div class="space-y-4">
+                 <div>
+                    <label for="file3" class="block mb-1">File Excel 3 (File Đơn Giá):</label>
+                    <input type="file" id="file3" class="w-full p-2 border rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="sheet3" class="block mb-1">Chọn Sheet File 3:</label>
+                        <select id="sheet3" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                     <div>
+                        <label for="price-column3" class="block mb-1">Cột Đơn giá trong File 3:</label>
+                        <select id="price-column3" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="key-column-intermediate" class="block mb-1">Cột đối chiếu từ KQ (File 2):</label>
+                        <select id="key-column-intermediate" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                    <div>
+                        <label for="key-column3" class="block mb-1">Cột đối chiếu trong File 3:</label>
+                        <select id="key-column3" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="value-column-intermediate" class="block mb-1">Cột giá trị (vd: Số lượng) từ KQ (File 2):</label>
+                        <select id="value-column-intermediate" class="w-full p-2 border rounded-md bg-white"></select>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Step 4: Output Columns & Presets -->
+        <div class="step-card">
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Bước 4: Chọn Cột Dữ Liệu Xuất Ra</h2>
+            <div id="output-columns-container" class="max-h-80 overflow-y-auto pr-2">
+                <p class="text-gray-500">Vui lòng tải và chọn sheet ở File 2 để thấy danh sách các cột.</p>
+            </div>
+            <div class="flex items-center space-x-2 mt-4 pt-4 border-t">
+                <input type="checkbox" id="add-profit-column" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                <label for="add-profit-column" class="font-medium text-gray-700">Thêm cột 'Lợi nhuận' đã tính (nếu có)</label>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button id="select-all-btn" class="btn btn-secondary text-sm flex-1">Chọn Tất Cả</button>
+                <button id="deselect-all-btn" class="btn btn-secondary text-sm flex-1">Bỏ Chọn Tất Cả</button>
+            </div>
+
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 my-4 pt-4">Lưu/Tải Bộ Chọn Cột</h2>
+            <div class="space-y-3">
+                <input type="text" id="preset-name" placeholder="Nhập tên bộ chọn..." class="w-full p-2 border rounded-md">
+                <button id="save-preset-btn" class="btn btn-secondary text-sm w-full">Lưu Bộ Chọn Hiện Tại</button>
+                <div class="flex items-center gap-2">
+                    <select id="presets-list" class="w-full p-2 border rounded-md bg-white"></select>
+                    <button id="delete-preset-btn" title="Xóa bộ chọn đã chọn" class="btn btn-danger p-2 h-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+                 <button id="load-preset-btn" class="btn btn-secondary text-sm w-full">Áp Dụng Bộ Chọn</button>
+            </div>
+        </div>
+        
+        <!-- Step 5: Action -->
+        <div class="step-card bg-blue-50 border border-blue-200">
+            <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Bước 5: Thực Hiện</h2>
+             <div class="flex items-center justify-center">
+                <button id="process-btn" class="btn btn-primary text-lg w-full md:w-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2 18.59a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 19.5V16.6C5 15.5 5.9 15 7 15h1.4c.6 0 1.2.2 1.6.6L12 18l-3 3-3.6-3.6a.6.6 0 0 1 .6-.6H9c.6 0 1-.4 1-1v-1.4c0-.6-.2-1.2-.6-1.6L7 12l-3-3-1.6 1.6a.6.6 0 0 0 .6.6H7c.6 0 1 .4 1 1v3.4c0 .6-.4 1-1 1H5Z"/></svg>
+                    So Sánh và Xuất File Excel
+                </button>
+            </div>
+        </div>
+        
+        <div id="status" class="hidden"></div>
     </div>
 
-<script>
-// --- DOM Elements ---
-const fileInputs = { 1: document.getElementById('file1'), 2: document.getElementById('file2') };
-const fileNames = { 1: document.getElementById('file1-name'), 2: document.getElementById('file2-name') };
-const sheetSelects = { 1: document.getElementById('sheet1'), 2: document.getElementById('sheet2') };
-const keySelects = { 1: document.getElementById('key1'), 2: document.getElementById('key2') };
-const configSection = document.getElementById('config-section');
-const processBtn = document.getElementById('process-btn');
-const statusDiv = document.getElementById('status');
-// Filter 1
-const enableFilter1Checkbox = document.getElementById('enable-filter1');
-const filter1Controls = document.getElementById('filter1-controls');
-const filter1ColumnSelect = document.getElementById('filter1-column');
-const filter1ValueSelect = document.getElementById('filter1-value');
-// Output 2
-const outputColumnsList2 = document.getElementById('output-columns-list2');
-const selectAll2Btn = document.getElementById('select-all-2');
-const deselectAll2Btn = document.getElementById('deselect-all-2');
+    <script>
+        // Global variables to store parsed data
+        let file1Data = null, file2Data = null, file3Data = null;
+        let file1Headers = [], file2Headers = [], file3Headers = [];
+        let workbook1 = null, workbook2 = null, workbook3 = null;
 
-// --- State ---
-let workbooks = { 1: null, 2: null };
-let sheetData = { 1: null, 2: null };
-let sheetHeaders = { 1: [], 2: [] };
+        // DOM Elements
+        const file1Input = document.getElementById('file1');
+        const file2Input = document.getElementById('file2');
+        const file3Input = document.getElementById('file3');
+        const sheet1Select = document.getElementById('sheet1');
+        const sheet2Select = document.getElementById('sheet2');
+        const sheet3Select = document.getElementById('sheet3');
+        const keyColumn1Select = document.getElementById('key-column1');
+        const keyColumn2Select = document.getElementById('key-column2');
+        const filterColumnSelect = document.getElementById('filter-column');
+        const filterValueSelect = document.getElementById('filter-value');
+        const keyColumnIntermediateSelect = document.getElementById('key-column-intermediate');
+        const valueColumnIntermediateSelect = document.getElementById('value-column-intermediate');
+        const keyColumn3Select = document.getElementById('key-column3');
+        const priceColumn3Select = document.getElementById('price-column3');
+        const addProfitColumnCheckbox = document.getElementById('add-profit-column');
 
-// --- Functions ---
+        const outputColumnsContainer = document.getElementById('output-columns-container');
+        const processBtn = document.getElementById('process-btn');
+        const statusDiv = document.getElementById('status');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const savePresetBtn = document.getElementById('save-preset-btn');
+        const loadPresetBtn = document.getElementById('load-preset-btn');
+        const deletePresetBtn = document.getElementById('delete-preset-btn');
+        const presetNameInput = document.getElementById('preset-name');
+        const presetsListSelect = document.getElementById('presets-list');
 
-const handleFile = (file, fileNum) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        workbooks[fileNum] = XLSX.read(data, { type: 'array' });
-        fileNames[fileNum].textContent = file.name;
-        fileNames[fileNum].classList.add('text-indigo-700', 'font-semibold');
-        populateSheetSelect(fileNum);
-        checkConfigReady();
-    };
-    reader.readAsArrayBuffer(file);
-};
+        // --- Event Listeners ---
 
-const populateSheetSelect = (fileNum) => {
-    const select = sheetSelects[fileNum];
-    select.innerHTML = '<option value="" disabled selected>-- Chọn sheet --</option>';
-    workbooks[fileNum].SheetNames.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-    });
-    select.classList.remove('hidden');
-};
+        document.addEventListener('DOMContentLoaded', loadPresets);
 
-const loadSheetData = (fileNum, sheetName) => {
-    if (!sheetName) {
-        sheetData[fileNum] = null;
-        sheetHeaders[fileNum] = [];
-    } else {
-        const worksheet = workbooks[fileNum].Sheets[sheetName];
-        sheetData[fileNum] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-        sheetHeaders[fileNum] = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] || [];
-    }
-    updateConfigUI();
-    checkConfigReady();
-};
+        file1Input.addEventListener('change', (e) => handleFile(e, 1));
+        file2Input.addEventListener('change', (e) => handleFile(e, 2));
+        file3Input.addEventListener('change', (e) => handleFile(e, 3));
 
-const updateConfigUI = () => {
-    if (sheetData[1]) {
-        populateColumnSelect(keySelects[1], sheetHeaders[1]);
-        populateColumnSelect(filter1ColumnSelect, sheetHeaders[1]);
-    }
-    if (sheetData[2]) {
-        populateColumnSelect(keySelects[2], sheetHeaders[2]);
-        populateCheckboxList(outputColumnsList2, sheetHeaders[2]);
-    }
-};
+        sheet1Select.addEventListener('change', () => loadSheetData(1));
+        sheet2Select.addEventListener('change', () => loadSheetData(2));
+        sheet3Select.addEventListener('change', () => loadSheetData(3));
 
-const checkConfigReady = () => {
-    const ready = !!(sheetData[1] && sheetData[2]);
-    configSection.classList.toggle('hidden', !ready);
-    processBtn.disabled = !ready;
-};
+        filterColumnSelect.addEventListener('change', populateFilterValues);
 
-const populateColumnSelect = (select, headers, placeholder = '-- Chọn cột --') => {
-    const currentValue = select.value;
-    select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`;
-    headers.forEach(h => {
-        if (h) select.add(new Option(h, h));
-    });
-    if (headers.includes(currentValue)) {
-        select.value = currentValue;
-    }
-};
+        processBtn.addEventListener('click', processAndExport);
 
-/**
- * [FIXED] Refactored this function to be more robust.
- * Instead of using innerHTML in a loop, it builds the elements
- * in a document fragment before appending them to the DOM once.
- */
-const populateCheckboxList = (container, headers) => {
-    container.innerHTML = ''; // Clear previous list
-    const fragment = document.createDocumentFragment();
-    headers.forEach(h => {
-        if (h) {
-            const id = `cb-${container.id}-${h.replace(/[^a-zA-Z0-9]/g, '-')}`;
-            
-            const div = document.createElement('div');
-            div.className = 'flex items-center';
+        selectAllBtn.addEventListener('click', () => toggleAllColumns(true));
+        deselectAllBtn.addEventListener('click', () => toggleAllColumns(false));
+        
+        savePresetBtn.addEventListener('click', savePreset);
+        loadPresetBtn.addEventListener('click', applyPreset);
+        deletePresetBtn.addEventListener('click', deletePreset);
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = id;
-            checkbox.value = h;
-            checkbox.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
-            checkbox.checked = true;
+        // --- Core Functions ---
 
-            const label = document.createElement('label');
-            label.htmlFor = id;
-            label.className = 'ml-2 text-sm truncate';
-            label.title = h;
-            label.textContent = h;
+        function handleFile(event, fileNumber) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            fragment.appendChild(div);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    if (fileNumber === 1) {
+                        workbook1 = workbook;
+                        populateSheetSelect(workbook1, sheet1Select);
+                        if (workbook1.SheetNames.length > 0) loadSheetData(1);
+                    } else if (fileNumber === 2) {
+                        workbook2 = workbook;
+                        populateSheetSelect(workbook2, sheet2Select);
+                        if (workbook2.SheetNames.length > 0) loadSheetData(2);
+                    } else if (fileNumber === 3) {
+                        workbook3 = workbook;
+                        populateSheetSelect(workbook3, sheet3Select);
+                        if (workbook3.SheetNames.length > 0) loadSheetData(3);
+                    }
+                    updateStatus(`Đã tải thành công file ${fileNumber}: ${file.name}`, 'info');
+                } catch (error) {
+                    console.error("Error reading file:", error);
+                    updateStatus(`Lỗi khi đọc file ${fileNumber}. Vui lòng kiểm tra file có phải là file Excel hợp lệ không.`, 'error');
+                }
+            };
+            reader.onerror = () => {
+                 updateStatus(`Lỗi khi đọc file ${fileNumber}.`, 'error');
+            }
+            reader.readAsArrayBuffer(file);
         }
-    });
-    container.appendChild(fragment);
-};
 
-const getSelectedCheckboxValues = (container) => Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+        function populateSheetSelect(workbook, selectElement) {
+            selectElement.innerHTML = '';
+            workbook.SheetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                selectElement.appendChild(option);
+            });
+        }
 
-const setAllCheckboxes = (container, checked) => {
-    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = checked);
-};
+        function loadSheetData(fileNumber) {
+            const workbook = {1: workbook1, 2: workbook2, 3: workbook3}[fileNumber];
+            const sheetSelect = {1: sheet1Select, 2: sheet2Select, 3: sheet3Select}[fileNumber];
+            if (!workbook || !sheetSelect.value) return;
 
-const processFiles = () => {
-    statusDiv.textContent = 'Đang xử lý...';
-    processBtn.disabled = true;
+            const sheetName = sheetSelect.value;
+            const worksheet = workbook.Sheets[sheetName];
+            
+            const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] || [];
+            const data = XLSX.utils.sheet_to_json(worksheet);
 
-    setTimeout(() => {
-        try {
-            // 1. Filter File 1 data
-            let data1 = sheetData[1];
-            if (enableFilter1Checkbox.checked) {
-                const col = filter1ColumnSelect.value;
-                const val = filter1ValueSelect.value;
-                if (!col || !val) throw new Error("Vui lòng chọn cột và giá trị để lọc ở File 1.");
-                data1 = data1.filter(row => String(row[col]).trim() === String(val).trim());
+            if (fileNumber === 1) {
+                file1Data = data;
+                file1Headers = headers;
+                populateHeaderSelect(keyColumn1Select, headers);
+                populateHeaderSelect(filterColumnSelect, headers);
+                populateFilterValues();
+            } else if (fileNumber === 2) {
+                file2Data = data;
+                file2Headers = headers;
+                populateHeaderSelect(keyColumn2Select, headers);
+                populateOutputColumns(headers);
+                // Populate dropdowns for profit calculation
+                populateHeaderSelect(keyColumnIntermediateSelect, headers);
+                populateHeaderSelect(valueColumnIntermediateSelect, headers);
+            } else if (fileNumber === 3) {
+                file3Data = data;
+                file3Headers = headers;
+                populateHeaderSelect(keyColumn3Select, headers);
+                populateHeaderSelect(priceColumn3Select, headers);
+            }
+        }
+
+        function populateHeaderSelect(selectElement, headers) {
+            const currentVal = selectElement.value;
+            selectElement.innerHTML = '';
+            headers.forEach(header => {
+                const option = document.createElement('option');
+                option.value = header;
+                option.textContent = header;
+                selectElement.appendChild(option);
+            });
+            if (headers.includes(currentVal)) {
+                selectElement.value = currentVal;
+            }
+        }
+
+        function populateFilterValues() {
+            const selectedColumn = filterColumnSelect.value;
+            if (!file1Data || !selectedColumn) {
+                filterValueSelect.innerHTML = '';
+                return;
+            }
+            
+            const uniqueValues = [...new Set(file1Data.map(row => row[selectedColumn]).filter(val => val != null))];
+            uniqueValues.sort();
+            
+            filterValueSelect.innerHTML = '';
+            uniqueValues.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                filterValueSelect.appendChild(option);
+            });
+        }
+
+        function populateOutputColumns(headers) {
+            outputColumnsContainer.innerHTML = '';
+            if (headers.length === 0) {
+                 outputColumnsContainer.innerHTML = '<p class="text-gray-500">Không tìm thấy cột nào.</p>';
+                 return;
+            }
+            outputColumnsContainer.className = 'max-h-80 overflow-y-auto pr-2 grid grid-cols-2 gap-x-4 gap-y-2';
+            
+            headers.forEach(header => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center bg-gray-50 p-2 rounded-md';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `col-${header.replace(/\s/g, '_')}`;
+                checkbox.value = header;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
+                checkbox.checked = true;
+
+                const label = document.createElement('label');
+                label.htmlFor = `col-${header.replace(/\s/g, '_')}`;
+                label.textContent = header;
+                label.className = 'ml-3 block text-sm font-medium text-gray-700 w-full cursor-pointer';
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                outputColumnsContainer.appendChild(div);
+            });
+        }
+
+        function toggleAllColumns(checkedState) {
+            const checkboxes = outputColumnsContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = checkedState);
+        }
+
+        function processAndExport() {
+            // --- Validation ---
+            if (!file1Data || !file2Data) {
+                updateStatus("Lỗi: Vui lòng tải ít nhất File 1 và File 2.", 'error');
+                return;
+            }
+            const keyCol1 = keyColumn1Select.value;
+            const keyCol2 = keyColumn2Select.value;
+            const filterCol = filterColumnSelect.value;
+            const filterVal = filterValueSelect.value;
+
+            if (!keyCol1 || !keyCol2 || !filterCol || filterVal === undefined) {
+                updateStatus("Lỗi: Vui lòng chọn đầy đủ các cột điều kiện và giá trị lọc ở Bước 1 & 2.", 'error');
+                return;
+            }
+            
+            const doProfitCalc = file3Input.files.length > 0;
+            if (doProfitCalc && (!file3Data || !keyColumnIntermediateSelect.value || !keyColumn3Select.value || !valueColumnIntermediateSelect.value || !priceColumn3Select.value)) {
+                 updateStatus("Lỗi: Để tính lợi nhuận, vui lòng tải File 3 và chọn đầy đủ các cột ở Bước 3.", 'error');
+                return;
             }
 
-            // 2. Join File 1 and File 2
-            const key1 = keySelects[1].value;
-            const key2 = keySelects[2].value;
-            const outputCols2 = getSelectedCheckboxValues(outputColumnsList2);
-            if (!key1 || !key2 || outputCols2.length === 0) throw new Error("Vui lòng cấu hình đầy đủ cho File 1 và File 2.");
+            updateStatus("Đang xử lý... Vui lòng chờ.", 'info');
 
-            const data1KeySet = new Set(data1.map(row => row[key1]?.toString().trim()).filter(Boolean));
-            let finalResult = sheetData[2]
-                .filter(row => data1KeySet.has(row[key2]?.toString().trim()))
-                .map(row => {
-                    let newRow = {};
-                    outputCols2.forEach(col => newRow[col] = row[col]);
+            try {
+                // --- LOGIC ---
+                // Step 1: Filter File 1 to get a set of valid keys
+                const filteredKeys1 = new Set(
+                    file1Data
+                        .filter(row => String(row[filterCol]) === String(filterVal))
+                        .map(row => row[keyCol1])
+                );
+
+                if (filteredKeys1.size === 0) {
+                    updateStatus(`Không tìm thấy dòng nào trong File 1 có giá trị "${filterVal}" ở cột "${filterCol}".`, 'info');
+                    return;
+                }
+
+                // Step 2: Find rows in File 2 where the key exists in our set of filtered keys
+                let intermediateMatchedRows = file2Data.filter(row => filteredKeys1.has(row[keyCol2]));
+
+                if (intermediateMatchedRows.length === 0) {
+                    updateStatus("Hoàn tất. Không tìm thấy dữ liệu trùng khớp nào trong File 2.", 'info');
+                    return;
+                }
+
+                // Step 3 (Optional): Match with File 3 and calculate profit
+                if (doProfitCalc) {
+                    const keyColIntermediate = keyColumnIntermediateSelect.value;
+                    const valColIntermediate = valueColumnIntermediateSelect.value;
+                    const keyCol3 = keyColumn3Select.value;
+                    const priceCol3 = priceColumn3Select.value;
+
+                    const priceMap = new Map(file3Data.map(row => [row[keyCol3], row[priceCol3]]));
+                    
+                    intermediateMatchedRows.forEach(row => {
+                        const matchKey = row[keyColIntermediate];
+                        const price = parseFloat(priceMap.get(matchKey));
+                        const quantity = parseFloat(row[valColIntermediate]);
+
+                        if (!isNaN(price) && !isNaN(quantity)) {
+                            row['Lợi nhuận'] = price * quantity;
+                        } else {
+                            row['Lợi nhuận'] = 0; // Default if no match or not a number
+                        }
+                    });
+                }
+
+                // Step 4: Prepare final data with selected output columns
+                const selectedOutputCols = Array.from(outputColumnsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+                if (selectedOutputCols.length === 0 && !addProfitColumnCheckbox.checked) {
+                    updateStatus("Lỗi: Vui lòng chọn ít nhất một cột dữ liệu để xuất ra.", 'error');
+                    return;
+                }
+
+                const finalData = intermediateMatchedRows.map(row => {
+                    const newRow = {};
+                    selectedOutputCols.forEach(col => {
+                        newRow[col] = row[col];
+                    });
+                    if (doProfitCalc && addProfitColumnCheckbox.checked) {
+                        newRow['Lợi nhuận'] = row['Lợi nhuận'];
+                    }
                     return newRow;
                 });
 
-            if (finalResult.length === 0) {
-                statusDiv.textContent = 'Không tìm thấy dòng nào khớp.';
-            } else {
-                const ws = XLSX.utils.json_to_sheet(finalResult);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'KetQua');
-                XLSX.writeFile(wb, 'KetQuaSoSanh.xlsx');
-                statusDiv.textContent = `Xử lý thành công ${finalResult.length} dòng. Đã tải file kết quả.`;
+                // Step 5: Create and download the new Excel file
+                const newWorksheet = XLSX.utils.json_to_sheet(finalData);
+                const newWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, "KetQuaLoc");
+                XLSX.writeFile(newWorkbook, "ket_qua_shopee.xlsx");
+
+                updateStatus(`Hoàn tất! Đã xử lý ${intermediateMatchedRows.length} dòng. File "ket_qua_shopee.xlsx" đã được tải xuống.`, 'success');
+            } catch (error) {
+                console.error("Processing error:", error);
+                updateStatus("Đã xảy ra lỗi trong quá trình xử lý. Vui lòng kiểm tra lại các lựa chọn và dữ liệu trong file.", 'error');
+            }
+        }
+
+        function updateStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status status-${type}`;
+            statusDiv.classList.remove('hidden');
+        }
+
+        // --- Preset/Profile Functions ---
+        function savePreset() {
+            const name = presetNameInput.value.trim();
+            if (!name) {
+                updateStatus("Vui lòng nhập tên cho bộ chọn.", 'error');
+                return;
+            }
+            const selectedColumns = Array.from(outputColumnsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+            const addProfit = addProfitColumnCheckbox.checked;
+
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            presets[name] = { selectedColumns, addProfit };
+            localStorage.setItem('shopeeFilterPresets', JSON.stringify(presets));
+            
+            presetNameInput.value = '';
+            loadPresets();
+            updateStatus(`Đã lưu bộ chọn "${name}" thành công.`, 'success');
+        }
+
+        function loadPresets() {
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            presetsListSelect.innerHTML = '';
+            const presetNames = Object.keys(presets);
+            if(presetNames.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = "Chưa có bộ chọn nào";
+                option.disabled = true;
+                presetsListSelect.appendChild(option);
+                return;
+            }
+            presetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                presetsListSelect.appendChild(option);
+            });
+        }
+
+        function applyPreset() {
+            const name = presetsListSelect.value;
+            if (!name) {
+                updateStatus("Vui lòng chọn một bộ chọn để áp dụng.", 'error');
+                return;
+            }
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            const presetData = presets[name];
+
+            if (!presetData) {
+                updateStatus(`Không tìm thấy bộ chọn có tên "${name}".`, 'error');
+                return;
             }
 
-        } catch (e) {
-            statusDiv.textContent = `Lỗi: ${e.message}`;
-        } finally {
-            processBtn.disabled = false;
+            const allCheckboxes = outputColumnsContainer.querySelectorAll('input[type="checkbox"]');
+            if (allCheckboxes.length === 0) {
+                updateStatus("Vui lòng tải File 2 trước khi áp dụng bộ chọn.", 'error');
+                return;
+            }
+            
+            allCheckboxes.forEach(cb => {
+                cb.checked = presetData.selectedColumns.includes(cb.value);
+            });
+
+            addProfitColumnCheckbox.checked = presetData.addProfit !== false; // Default to true if not defined
+
+            updateStatus(`Đã áp dụng bộ chọn "${name}".`, 'info');
         }
-    }, 50);
-};
 
-// --- Event Listeners ---
-Object.keys(fileInputs).forEach(num => {
-    fileInputs[num].addEventListener('change', (e) => handleFile(e.target.files[0], num));
-    sheetSelects[num].addEventListener('change', (e) => loadSheetData(num, e.target.value));
-});
-
-enableFilter1Checkbox.addEventListener('change', (e) => filter1Controls.classList.toggle('hidden', !e.target.checked));
-filter1ColumnSelect.addEventListener('change', (e) => {
-    const col = e.target.value;
-    if (!col || !sheetData[1]) return;
-    const uniqueValues = [...new Set(sheetData[1].map(row => row[col]).filter(v => v != null))].sort();
-    populateColumnSelect(filter1ValueSelect, uniqueValues, '-- Chọn giá trị --');
-});
-
-selectAll2Btn.addEventListener('click', () => setAllCheckboxes(outputColumnsList2, true));
-deselectAll2Btn.addEventListener('click', () => setAllCheckboxes(outputColumnsList2, false));
-
-processBtn.addEventListener('click', processFiles);
-
-</script>
+        function deletePreset() {
+            const name = presetsListSelect.value;
+            if (!name) {
+                updateStatus("Vui lòng chọn một bộ chọn để xóa.", 'error');
+                return;
+            }
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            if (presets[name]) {
+                delete presets[name];
+                localStorage.setItem('shopeeFilterPresets', JSON.stringify(presets));
+                loadPresets();
+                updateStatus(`Đã xóa bộ chọn "${name}".`, 'success');
+            } else {
+                updateStatus(`Không tìm thấy bộ chọn "${name}" để xóa.`, 'error');
+            }
+        }
+    </script>
 </body>
 </html>
