@@ -53,6 +53,13 @@
         .btn-secondary:hover {
             background-color: #374151;
         }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
         .btn-disabled {
             background-color: #9ca3af;
             cursor: not-allowed;
@@ -221,6 +228,22 @@
                     <label for="add-revenue-column" class="font-medium text-gray-700">Thêm cột 'Doanh thu' (kết quả tính ở Bước 3)</label>
                 </div>
             </div>
+            
+            <!-- Preset Section -->
+            <div id="preset-section" class="mt-6 pt-6 border-t">
+                 <h2 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4">Lưu/Tải Cấu Hình Cột</h2>
+                <div class="space-y-3">
+                    <input type="text" id="preset-name" placeholder="Nhập tên cấu hình..." class="w-full p-2 border rounded-md">
+                    <button id="save-preset-btn" class="btn btn-secondary text-sm w-full">Lưu Cấu Hình Hiện Tại</button>
+                    <div class="flex items-center gap-2">
+                        <select id="presets-list" class="w-full p-2 border rounded-md bg-white"></select>
+                        <button id="delete-preset-btn" title="Xóa cấu hình đã chọn" class="btn btn-danger p-2 h-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                     <button id="load-preset-btn" class="btn btn-secondary text-sm w-full">Áp Dụng Cấu Hình</button>
+                </div>
+            </div>
         </div>
         
         <!-- Step 5: Final Action -->
@@ -283,7 +306,15 @@
         const selectAllBtnFile3 = document.getElementById('select-all-btn-file3');
         const deselectAllBtnFile3 = document.getElementById('deselect-all-btn-file3');
 
+        const savePresetBtn = document.getElementById('save-preset-btn');
+        const loadPresetBtn = document.getElementById('load-preset-btn');
+        const deletePresetBtn = document.getElementById('delete-preset-btn');
+        const presetNameInput = document.getElementById('preset-name');
+        const presetsListSelect = document.getElementById('presets-list');
+
         // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', loadPresets);
+
         file1Input.addEventListener('change', (e) => handleFile(e, 1));
         file2Input.addEventListener('change', (e) => handleFile(e, 2));
         file3Input.addEventListener('change', (e) => handleFile(e, 3));
@@ -303,6 +334,10 @@
         deselectAllBtnFile2.addEventListener('click', () => toggleAllColumns(outputColumnsContainerFile2, false));
         selectAllBtnFile3.addEventListener('click', () => toggleAllColumns(outputColumnsContainerFile3, true));
         deselectAllBtnFile3.addEventListener('click', () => toggleAllColumns(outputColumnsContainerFile3, false));
+        
+        savePresetBtn.addEventListener('click', savePreset);
+        loadPresetBtn.addEventListener('click', applyPreset);
+        deletePresetBtn.addEventListener('click', deletePreset);
         
         // --- Core Functions ---
 
@@ -375,9 +410,11 @@
 
             if (fileNumber === 1) {
                 file1Data = data;
-                populateHeaderSelect(keyColumn1Select, headers);
-                populateHeaderSelect(filterColumnSelect, headers);
-                updateFilterValueOptions(); // Call the dedicated function
+                populateHeaderSelect(keyColumn1Select, headers, () => {
+                    populateHeaderSelect(filterColumnSelect, headers, () => {
+                        updateFilterValueOptions();
+                    });
+                });
             } else if (fileNumber === 2) {
                 file2Data = data;
                 populateHeaderSelect(keyColumn2Select, headers);
@@ -389,7 +426,7 @@
             }
         }
 
-        function populateHeaderSelect(selectElement, headers) {
+        function populateHeaderSelect(selectElement, headers, callback) {
             const currentVal = selectElement.value;
             selectElement.innerHTML = '';
             headers.forEach(header => {
@@ -401,6 +438,7 @@
             if (headers.includes(currentVal)) {
                 selectElement.value = currentVal;
             }
+            if (callback) callback();
         }
 
         function updateFilterValueOptions() {
@@ -512,7 +550,7 @@
             }
             updateStatus("Đang xử lý file cuối cùng...", 'info');
 
-            let finalData = [];
+            let dataForExport = [];
             if (doRevenueCalc) {
                 const keyCol2Join = keyColumn2JoinSelect.value;
                 const keyCol3Join = keyColumn3JoinSelect.value;
@@ -526,7 +564,7 @@
                     }).filter(Boolean)
                 );
 
-                finalData = intermediateResultData.map(row => {
+                dataForExport = intermediateResultData.map(row => {
                     const newRow = {};
                     const selectedCols2 = Array.from(outputColumnsContainerFile2.querySelectorAll('input:checked')).map(cb => cb.value);
                     selectedCols2.forEach(col => newRow[col] = row[col]);
@@ -550,28 +588,57 @@
                 });
             } else {
                 const selectedCols2 = Array.from(outputColumnsContainerFile2.querySelectorAll('input:checked')).map(cb => cb.value);
-                finalData = intermediateResultData.map(row => {
+                dataForExport = intermediateResultData.map(row => {
                      const newRow = {};
                      selectedCols2.forEach(col => newRow[col] = row[col]);
                      return newRow;
                 });
             }
 
-            if (finalData.length === 0) {
+            if (dataForExport.length === 0) {
                 updateStatus("Hoàn tất. Không có dữ liệu nào để xuất.", 'info');
                 return;
             }
 
-            const ws = XLSX.utils.json_to_sheet(finalData);
+            // Add total row if applicable
             if (doRevenueCalc && addRevenueColumnCheckbox.checked) {
-                const revenueColIndex = Object.keys(finalData[0]).indexOf('Doanh thu');
+                const totalRevenue = dataForExport.reduce((sum, row) => sum + (parseFloat(row['Doanh thu']) || 0), 0);
+                const totalRow = {};
+                const headers = Object.keys(dataForExport[0]);
+                headers.forEach(h => totalRow[h] = null); // Initialize with null
+                totalRow[headers[0]] = 'Tổng cộng';
+                totalRow['Doanh thu'] = totalRevenue;
+                dataForExport.push(totalRow);
+            }
+
+            const ws = XLSX.utils.json_to_sheet(dataForExport);
+            
+            // Styling logic
+            if (doRevenueCalc && addRevenueColumnCheckbox.checked && dataForExport.length > 1) { // Check if there's data + total row
+                const headers = Object.keys(dataForExport[0]);
+                const revenueColIndex = headers.indexOf('Doanh thu');
+
                 if (revenueColIndex > -1) {
+                    const highlightStyle = { font: { bold: true }, fill: { fgColor: { rgb: "FFFFE0" } } }; // Light Yellow
                     const boldStyle = { font: { bold: true } };
-                    const headerCellAddress = XLSX.utils.encode_cell({c: revenueColIndex, r: 0});
-                    if(ws[headerCellAddress]) ws[headerCellAddress].s = boldStyle;
-                    for (let i = 0; i < finalData.length; i++) {
-                        const cellAddress = XLSX.utils.encode_cell({c: revenueColIndex, r: i + 1});
-                        if(ws[cellAddress]) ws[cellAddress].s = boldStyle;
+                    
+                    // Style revenue column
+                    for (let R = 0; R <= dataForExport.length; ++R) { // R is 0-based index for worksheet rows (header is at R=0)
+                        const cellAddress = XLSX.utils.encode_cell({c: revenueColIndex, r: R});
+                        if (!ws[cellAddress]) continue;
+                        ws[cellAddress].s = highlightStyle;
+                    }
+
+                    // Style total row
+                    const totalRowWsIndex = dataForExport.length; // The last row in the sheet data
+                    for (let C = 0; C < headers.length; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({c: C, r: totalRowWsIndex});
+                        if (!ws[cellAddress]) continue;
+                        
+                        // If it's the revenue cell, it's already styled. Otherwise, just make it bold.
+                        if (C !== revenueColIndex) {
+                           ws[cellAddress].s = boldStyle;
+                        }
                     }
                 }
             }
@@ -579,7 +646,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "KetQuaTongHop");
             XLSX.writeFile(wb, "ket_qua_tong_hop.xlsx");
-            updateStatus(`Hoàn tất! Đã xử lý ${finalData.length} dòng. File "ket_qua_tong_hop.xlsx" đã được tải xuống.`, 'success');
+            updateStatus(`Hoàn tất! Đã xử lý ${dataForExport.length} dòng (bao gồm dòng tổng). File "ket_qua_tong_hop.xlsx" đã được tải xuống.`, 'success');
         }
 
         function populateOutputColumns(container, headers) {
@@ -613,8 +680,95 @@
             statusDiv.className = `status status-${type}`;
             statusDiv.classList.remove('hidden');
         }
-        // Preset functions would need to be updated to save/load the new structure of selections
-        // This is omitted for brevity but would follow the same pattern as before.
+
+        // --- Preset Functions ---
+        function savePreset() {
+            const name = presetNameInput.value.trim();
+            if (!name) {
+                updateStatus("Vui lòng nhập tên cho cấu hình.", 'error');
+                return;
+            }
+            const selectedColumns2 = Array.from(outputColumnsContainerFile2.querySelectorAll('input:checked')).map(cb => cb.value);
+            const selectedColumns3 = Array.from(outputColumnsContainerFile3.querySelectorAll('input:checked')).map(cb => cb.value);
+            const addRevenue = addRevenueColumnCheckbox.checked;
+
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            presets[name] = { selectedColumns2, selectedColumns3, addRevenue };
+            localStorage.setItem('shopeeFilterPresets', JSON.stringify(presets));
+            
+            presetNameInput.value = '';
+            loadPresets();
+            updateStatus(`Đã lưu cấu hình "${name}" thành công.`, 'success');
+        }
+
+        function loadPresets() {
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            presetsListSelect.innerHTML = '';
+            const presetNames = Object.keys(presets);
+            if(presetNames.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = "Chưa có cấu hình nào";
+                option.disabled = true;
+                presetsListSelect.appendChild(option);
+                return;
+            }
+            presetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                presetsListSelect.appendChild(option);
+            });
+        }
+
+        function applyPreset() {
+            const name = presetsListSelect.value;
+            if (!name) {
+                updateStatus("Vui lòng chọn một cấu hình để áp dụng.", 'error');
+                return;
+            }
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            const presetData = presets[name];
+
+            if (!presetData) {
+                updateStatus(`Không tìm thấy cấu hình có tên "${name}".`, 'error');
+                return;
+            }
+
+            toggleAllColumns(outputColumnsContainerFile2, false);
+            presetData.selectedColumns2.forEach(colName => {
+                const cb = outputColumnsContainerFile2.querySelector(`input[value="${colName}"]`);
+                if (cb) cb.checked = true;
+            });
+            
+            if (file3Data) {
+                 toggleAllColumns(outputColumnsContainerFile3, false);
+                 (presetData.selectedColumns3 || []).forEach(colName => {
+                    const cb = outputColumnsContainerFile3.querySelector(`input[value="${colName}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+
+            addRevenueColumnCheckbox.checked = presetData.addRevenue !== false;
+            
+            updateStatus(`Đã áp dụng cấu hình "${name}".`, 'info');
+        }
+
+        function deletePreset() {
+            const name = presetsListSelect.value;
+            if (!name) {
+                updateStatus("Vui lòng chọn một cấu hình để xóa.", 'error');
+                return;
+            }
+            const presets = JSON.parse(localStorage.getItem('shopeeFilterPresets')) || {};
+            if (presets[name]) {
+                delete presets[name];
+                localStorage.setItem('shopeeFilterPresets', JSON.stringify(presets));
+                loadPresets();
+                updateStatus(`Đã xóa cấu hình "${name}".`, 'success');
+            } else {
+                updateStatus(`Không tìm thấy cấu hình "${name}" để xóa.`, 'error');
+            }
+        }
     </script>
 </body>
 </html>
